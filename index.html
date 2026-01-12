@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Python Games - Play in Browser</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.11.0/brython.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.11.0/brython_stdlib.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .game-image {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5em;
+        }
+
+        .game-content {
+            padding: 20px;
+        }
+
+        .game-title {
+            font-size: 1.3em;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+
+        .game-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            font-size: 0.9em;
+        }
+
+        .play-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .game-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .game-modal.active {
+            display: flex;
+        }
+
+        .game-window {
+            background: white;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .game-area {
+            padding: 30px;
+            flex: 1;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .game-canvas {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        #gameOutput {
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #gameInput {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            padding: 30px 20px;
+            margin-top: 40px;
+            opacity: 0.9;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-left: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body onload="brython()">
+    <div class="container">
+        <header>
+            <h1>🐍 My Python Games</h1>
+            <p class="subtitle">Play Python games directly in your browser - no downloads needed!</p>
+        </header>
+
+        <div class="games-grid">
+            <div class="game-card" onclick="loadGame('guess')">
+                <div class="game-image">🔢</div>
+                <div class="game-content">
+                    <h3 class="game-title">Number Guessing Game</h3>
+                    <p class="game-description">Try to guess the secret number between 1 and 100. The game will tell you if you're too high or too low!</p>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="loadGame('dice')">
+                <div class="game-image">🎲</div>
+                <div class="game-content">
+                    <h3 class="game-title">Dice Roller</h3>
+                    <p class="game-description">Roll dice with various sides. Perfect for board games, RPGs, or just for fun!</p>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="loadGame('rps')">
+                <div class="game-image">✊</div>
+                <div class="game-content">
+                    <h3 class="game-title">Rock Paper Scissors</h3>
+                    <p class="game-description">Classic rock, paper, scissors game. Play against the computer and see who wins!</p>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="loadGame('quiz')">
+                <div class="game-image">🧠</div>
+                <div class="game-content">
+                    <h3 class="game-title">Python Quiz</h3>
+                    <p class="game-description">Test your Python knowledge with this interactive quiz game!</p>
+                    <button class="play-btn">Play Now</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with Python (Brython) | Play anywhere, anytime | © 2026</p>
+        </footer>
+    </div>
+
+    <div class="game-modal" id="gameModal">
+        <div class="game-window">
+            <div class="game-header">
+                <div>
+                    <h2 id="modalGameTitle">Game</h2>
+                    <button class="back-btn" onclick="closeGame()">← Back to Games</button>
+                </div>
+                <button class="close-btn" onclick="closeGame()">×</button>
+            </div>
+            <div class="game-area">
+                <div class="game-canvas">
+                    <div id="gameOutput"></div>
+                    <input type="text" id="gameInput" placeholder="Type your answer here..." style="display:none;">
+                </div>
+                <div class="controls" id="gameControls"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/python">
+        from browser import document, html, alert
+        import random
+
+        current_game = None
+        game_state = {}
+
+        def write_output(text):
+            output = document["gameOutput"]
+            output.text += str(text) + "\n"
+            output.scrollTop = output.scrollHeight
+
+        def clear_output():
+            document["gameOutput"].text = ""
+
+        def show_input():
+            document["gameInput"].style.display = "block"
+            document["gameInput"].value = ""
+            document["gameInput"].focus()
+
+        def hide_input():
+            document["gameInput"].style.display = "none"
+
+        def clear_controls():
+            document["gameControls"].clear()
+
+        # Number Guessing Game
+        def start_guess_game(ev=None):
+            clear_output()
+            clear_controls()
+            game_state['secret'] = random.randint(1, 100)
+            game_state['attempts'] = 0
+            write_output("🔢 Welcome to Number Guessing Game!")
+            write_output("=" * 40)
+            write_output("I'm thinking of a number between 1 and 100.")
+            write_output("Can you guess it?")
+            write_output("")
+            show_input()
+            
+            def handle_guess(ev):
+                if ev.keyCode == 13:
+                    guess_text = document["gameInput"].value
+                    document["gameInput"].value = ""
+                    
+                    try:
+                        guess = int(guess_text)
+                        game_state['attempts'] += 1
+                        write_output(f"You guessed: {guess}")
+                        
+                        if guess < game_state['secret']:
+                            write_output("📈 Too low! Try a higher number.")
+                        elif guess > game_state['secret']:
+                            write_output("📉 Too high! Try a lower number.")
+                        else:
+                            write_output("")
+                            write_output("🎉 " * 10)
+                            write_output(f"Congratulations! You got it in {game_state['attempts']} attempts!")
+                            write_output("🎉 " * 10)
+                            hide_input()
+                            
+                            restart_btn = html.BUTTON("Play Again", Class="control-btn")
+                            restart_btn.bind("click", start_guess_game)
+                            document["gameControls"] <= restart_btn
+                    except:
+                        write_output("❌ Please enter a valid number!")
+            
+            document["gameInput"].bind("keypress", handle_guess)
+
+        # Dice Roller
+        def start_dice_game(ev=None):
+            clear_output()
+            clear_controls()
+            hide_input()
+            write_output("🎲 Welcome to Dice Roller!")
+            write_output("=" * 40)
+            write_output("Click a button to roll dice!")
+            write_output("")
+            
+            def roll_dice(sides):
+                def handler(ev):
+                    result = random.randint(1, sides)
+                    write_output(f"🎲 Rolling d{sides}... You got: {result}")
+                return handler
+            
+            controls = document["gameControls"]
+            for sides in [4, 6, 8, 10, 12, 20, 100]:
+                btn = html.BUTTON(f"Roll d{sides}", Class="control-btn")
+                btn.bind("click", roll_dice(sides))
+                controls <= btn
+
+        # Rock Paper Scissors
+        def start_rps_game(ev=None):
+            clear_output()
+            clear_controls()
+            hide_input()
+            game_state['score'] = {'player': 0, 'computer': 0}
+            write_output("✊ Welcome to Rock Paper Scissors!")
+            write_output("=" * 40)
+            write_output("Choose your move!")
+            write_output("")
+            display_score()
+            
+            def display_score():
+                write_output(f"Score - You: {game_state['score']['player']} | Computer: {game_state['score']['computer']}")
+                write_output("")
+            
+            def play_round(player_choice):
+                def handler(ev):
+                    choices = ['rock', 'paper', 'scissors']
+                    computer_choice = random.choice(choices)
+                    
+                    emojis = {'rock': '✊', 'paper': '✋', 'scissors': '✌️'}
+                    
+                    write_output(f"You chose: {emojis[player_choice]} {player_choice}")
+                    write_output(f"Computer chose: {emojis[computer_choice]} {computer_choice}")
+                    
+                    if player_choice == computer_choice:
+                        write_output("🤝 It's a tie!")
+                    elif (player_choice == 'rock' and computer_choice == 'scissors') or \
+                         (player_choice == 'paper' and computer_choice == 'rock') or \
+                         (player_choice == 'scissors' and computer_choice == 'paper'):
+                        write_output("🎉 You win this round!")
+                        game_state['score']['player'] += 1
+                    else:
+                        write_output("💔 Computer wins this round!")
+                        game_state['score']['computer'] += 1
+                    
+                    write_output("")
+                    display_score()
+                
+                return handler
+            
+            controls = document["gameControls"]
+            for choice in ['rock', 'paper', 'scissors']:
+                emojis = {'rock': '✊', 'paper': '✋', 'scissors': '✌️'}
+                btn = html.BUTTON(f"{emojis[choice]} {choice.title()}", Class="control-btn")
+                btn.bind("click", play_round(choice))
+                controls <= btn
+            
+            reset_btn = html.BUTTON("Reset Score", Class="control-btn")
+            reset_btn.bind("click", start_rps_game)
+            controls <= reset_btn
+
+        # Python Quiz
+        def start_quiz_game(ev=None):
+            clear_output()
+            clear_controls()
+            hide_input()
+            
+            questions = [
+                {"q": "What is the result of 5 + 3 * 2?", "a": ["11", "16", "10", "13"], "correct": 0},
+                {"q": "What keyword is used to define a function?", "a": ["func", "def", "function", "define"], "correct": 1},
+                {"q": "What is the output of print(type([]))?", "a": ["<class 'list'>", "<class 'dict'>", "<class 'tuple'>", "list"], "correct": 0},
+                {"q": "Which operator is used for exponentiation?", "a": ["^", "**", "exp", "^^"], "correct": 1},
+            ]
+            
+            game_state['questions'] = questions
+            game_state['current'] = 0
+            game_state['score'] = 0
+            
+            write_output("🧠 Welcome to Python Quiz!")
+            write_output("=" * 40)
+            write_output("")
+            
+            def show_question():
+                clear_controls()
+                if game_state['current'] < len(game_state['questions']):
+                    q = game_state['questions'][game_state['current']]
+                    write_output(f"Question {game_state['current'] + 1}/{len(game_state['questions'])}")
+                    write_output(q['q'])
+                    write_output("")
+                    
+                    controls = document["gameControls"]
+                    for i, answer in enumerate(q['a']):
+                        def make_handler(idx):
+                            def handler(ev):
+                                check_answer(idx)
+                            return handler
+                        
+                        btn = html.BUTTON(f"{chr(65+i)}. {answer}", Class="control-btn")
+                        btn.bind("click", make_handler(i))
+                        controls <= btn
+                else:
+                    write_output("🎉 Quiz Complete!")
+                    write_output(f"Your score: {game_state['score']}/{len(game_state['questions'])}")
+                    if game_state['score'] == len(game_state['questions']):
+                        write_output("Perfect score! You're a Python master! 🏆")
+                    elif game_state['score'] >= len(game_state['questions']) * 0.7:
+                        write_output("Great job! 👏")
+                    else:
+                        write_output("Keep learning! 📚")
+                    
+                    restart_btn = html.BUTTON("Play Again", Class="control-btn")
+                    restart_btn.bind("click", start_quiz_game)
+                    document["gameControls"] <= restart_btn
+            
+            def check_answer(selected):
+                q = game_state['questions'][game_state['current']]
+                if selected == q['correct']:
+                    write_output("✅ Correct!")
+                    game_state['score'] += 1
+                else:
+                    write_output(f"❌ Wrong! The correct answer was: {q['a'][q['correct']]}")
+                write_output("")
+                game_state['current'] += 1
+                show_question()
+            
+            show_question()
+
+        # Game loader
+        def load_game_py(game_id):
+            games = {
+                'guess': ('Number Guessing Game', start_guess_game),
+                'dice': ('Dice Roller', start_dice_game),
+                'rps': ('Rock Paper Scissors', start_rps_game),
+                'quiz': ('Python Quiz', start_quiz_game)
+            }
+            
+            if game_id in games:
+                title, start_fn = games[game_id]
+                document["modalGameTitle"].text = title
+                document["gameModal"].classList.add("active")
+                start_fn()
+
+        # Expose to JavaScript
+        window.loadGamePy = load_game_py
+    </script>
+
+    <script>
+        function loadGame(gameId) {
+            window.loadGamePy(gameId);
+        }
+
+        function closeGame() {
+            document.getElementById('gameModal').classList.remove('active');
+            document.getElementById('gameOutput').textContent = '';
+            document.getElementById('gameInput').style.display = 'none';
+            document.getElementById('gameControls').innerHTML = '';
+        }
+
+        document.getElementById('gameModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGame();
+            }
+        });
+    </script>
+</body>
+</html>
