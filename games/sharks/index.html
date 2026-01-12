@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sharks Game</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #000;
+            padding: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+        }
+        #output {
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+            min-height: 400px;
+        }
+        #input-area {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            background: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        a {
+            color: #00ff00;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="output"></div>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Enter your move...">
+            <button onclick="submitInput()">Submit</button>
+        </div>
+        <a href="../../index.html">← Back to Games</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script>
+        let pyodide;
+        let inputResolver;
+        const output = document.getElementById('output');
+        const inputField = document.getElementById('user-input');
+
+        async function initPyodide() {
+            output.textContent = 'Loading game...\n';
+            pyodide = await loadPyodide();
+            
+            // Override Python's input and print
+            pyodide.globals.set('input', async (prompt) => {
+                output.textContent += prompt || '';
+                return new Promise((resolve) => {
+                    inputResolver = resolve;
+                });
+            });
+            
+            pyodide.globals.set('print', (...args) => {
+                output.textContent += args.join(' ') + '\n';
+            });
+
+            // Load and run the game
+            const response = await fetch('sharks.py');
+            const code = await response.text();
+            await pyodide.runPythonAsync(code);
+        }
+
+        function submitInput() {
+            const value = inputField.value;
+            output.textContent += value + '\n';
+            inputField.value = '';
+            if (inputResolver) {
+                inputResolver(value);
+                inputResolver = null;
+            }
+        }
+
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitInput();
+        });
+
+        initPyodide();
+    </script>
+</body>
+</html>
